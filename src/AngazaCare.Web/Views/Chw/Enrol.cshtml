@@ -1,0 +1,82 @@
+@model EnrolInput
+@{ ViewData["Title"] = "Enrol a mother"; }
+<a class="back" href="/chw">@Ui.Icon("back", 16) Cases</a>
+<div class="page-head">
+    <div>
+        <h1>Enrol a mother</h1>
+        <p>She will get a check-in SMS every week and can answer from any phone.</p>
+    </div>
+</div>
+
+<form method="post" asp-action="Enrol" novalidate class="grid-2">
+    <div class="panel">
+        <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+        <div class="field">
+            <label asp-for="DisplayName">First name</label>
+            <span class="hint">First name only. It appears in her messages.</span>
+            <input asp-for="DisplayName" type="text" autocomplete="off" />
+            <span asp-validation-for="DisplayName" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Phone">Her phone number</label>
+            <span class="hint">The number she will reply from. It is stored encrypted.</span>
+            <input asp-for="Phone" type="tel" inputmode="tel" placeholder="0712 345 678" />
+            <span asp-validation-for="Phone" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Village">Village or area</label>
+            <input asp-for="Village" type="text" />
+            <span asp-validation-for="Village" class="field-error"></span>
+        </div>
+        <div class="field">
+            <span class="label">Language for her messages</span>
+            <div class="choice">
+                <label><input type="radio" asp-for="Language" value="sw" /> Swahili</label>
+                <label><input type="radio" asp-for="Language" value="en" /> English</label>
+            </div>
+        </div>
+
+        <div class="field">
+            <span class="label">How do you know her dates?</span>
+            <div class="choice" data-toggle-basis>
+                <label><input type="radio" asp-for="DateBasis" value="lmp" /> Last period</label>
+                <label><input type="radio" asp-for="DateBasis" value="edd" /> Due date from clinic</label>
+            </div>
+        </div>
+        <div class="field" data-basis="lmp">
+            <label asp-for="Lmp">First day of her last period</label>
+            <input asp-for="Lmp" type="date" />
+            <span asp-validation-for="Lmp" class="field-error"></span>
+        </div>
+        <div class="field" data-basis="edd" hidden>
+            <label asp-for="Edd">Estimated due date</label>
+            <input asp-for="Edd" type="date" />
+            <span asp-validation-for="Edd" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="NextAnc">Next clinic (ANC) visit, if booked</label>
+            <span class="hint">She gets a reminder the day before.</span>
+            <input asp-for="NextAnc" type="date" />
+            <span asp-validation-for="NextAnc" class="field-error"></span>
+        </div>
+        <label class="check">
+            <input type="checkbox" asp-for="Discreet" />
+            <span><b>Discreet messages</b><br /><span class="muted">For a shared phone. Messages never mention pregnancy or symptoms.</span></span>
+        </label>
+    </div>
+
+    <div class="stack">
+        <div class="panel">
+            <h2 style="margin-bottom:12px">Consent</h2>
+            <p class="muted" style="margin-bottom:12px">Read this to her in her language, then record her answer.</p>
+            <div class="consent">
+                <p>Angaza Care will send you a short SMS each week to ask how you are. If your answer shows a danger sign, your health worker will be told so she can help you. A nurse checks before any referral. Your number is kept private and is only used for your care. You can stop at any time by sending STOP.</p>
+                <p class="sw">Angaza Care itakutumia ujumbe mfupi kila wiki kukuuliza unavyojisikia. Jibu lako likionyesha dalili ya hatari, mhudumu wako wa afya ataarifiwa ili akusaidie. Muuguzi hukagua kabla ya rufaa yoyote. Namba yako ni siri na inatumika kwa huduma yako tu. Unaweza kusimamisha wakati wowote kwa kutuma STOP.</p>
+            </div>
+            <label class="check"><input type="checkbox" asp-for="ConsentRead" /> <span>I read this statement to her</span></label>
+            <label class="check"><input type="checkbox" asp-for="ConsentGiven" /> <span>She agreed to take part</span></label>
+            <span asp-validation-for="ConsentGiven" class="field-error"></span>
+        </div>
+        <button class="btn block" type="submit">Enrol and send first check-in</button>
+    </div>
+</form>

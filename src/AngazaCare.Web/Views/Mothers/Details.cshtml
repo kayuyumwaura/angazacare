@@ -1,0 +1,120 @@
+@model MotherVm
+@{
+    var m = Model.Mother;
+    ViewData["Title"] = m.DisplayName;
+    var assessments = Model.Assessments.ToDictionary(a => a.MessageId);
+    var live = Model.Flags.FirstOrDefault(f => f.IsLive);
+}
+<a class="back" href="/mothers">@Ui.Icon("back", 16) Mothers</a>
+<div class="page-head">
+    <div>
+        <h1>@m.DisplayName</h1>
+        <p>@m.Village. @(m.PregnancyId is null ? "Antenatal follow-up has ended." : $"{m.GestationWeeks} weeks pregnant, due {m.Edd:d MMM yyyy}.")</p>
+    </div>
+    @if (live is not null)
+    {
+        <a class="btn" href="/cases/details/@live.Id">Open her case</a>
+    }
+</div>
+
+<div class="grid-2">
+    <div class="panel">
+        <div class="panel-head"><h2>Messages</h2><span class="quiet">@Model.Messages.Count in total</span></div>
+        @if (Model.Messages.Count == 0)
+        {
+            <p class="muted">No messages yet.</p>
+        }
+        <div class="thread">
+            @foreach (var msg in Model.Messages)
+            {
+                <div class="bubble @msg.Direction">@msg.Body</div>
+                <div class="bubble-meta @msg.Direction">@(msg.Channel == "ussd" ? "USSD, " : "")@Ui.When(msg.CreatedAt)@(msg.Direction == "out" && msg.GatewayStatus is not null && msg.GatewayStatus != "Success" && msg.GatewayStatus != "Shown" ? $", {msg.GatewayStatus}" : "")</div>
+                @if (msg.Direction == "in" && assessments.TryGetValue(msg.Id, out var a))
+                {
+                    <div class="read">Read by <b>@Ui.Method(a.Method)</b>: @(a.Outcome == "well" ? "no danger sign" : a.Outcome == "unclear" ? "needs a person" : Ui.SignNames(a.Signs, Model.Signs))</div>
+                }
+            }
+        </div>
+    </div>
+
+    <div class="stack">
+        <div class="panel">
+            <h2 style="margin-bottom:12px">Her details</h2>
+            <dl class="dl">
+                <dt>Phone</dt><dd>ends ..@m.PhoneLast3</dd>
+                <dt>Language</dt><dd>@Ui.Lang(m.Language)</dd>
+                <dt>Messages</dt><dd>@(m.Discreet ? "Discreet (shared phone)" : "Standard")</dd>
+                <dt>CHW</dt><dd>@m.ChwName</dd>
+                <dt>Consent</dt><dd>@Ui.When(m.ConsentAt), version @m.ConsentVersion</dd>
+                <dt>Next check-in</dt><dd>@(m.OptedOutAt is not null ? "Stopped, she opted out" : m.NextCheckInAt is DateTime n ? Ui.When(n) : "None")</dd>
+            </dl>
+        </div>
+
+        @if (m.PregnancyId is not null)
+        {
+            <form class="panel" method="post" asp-action="UpdateAnc" asp-route-id="@m.Id">
+                <div class="field">
+                    <label for="nextAnc">Next clinic (ANC) visit</label>
+                    <span class="hint">She gets an SMS reminder the day before.</span>
+                    <input id="nextAnc" name="nextAnc" type="date" value="@m.NextAncDate?.ToString("yyyy-MM-dd")" />
+                </div>
+                <button class="btn secondary" type="submit">Save clinic date</button>
+            </form>
+
+            @if (live is null)
+            {
+                <details class="panel">
+                    <summary style="cursor:pointer; font-weight:700">Open a case by hand</summary>
+                    <form method="post" asp-action="OpenCase" asp-route-id="@m.Id" style="margin-top:16px">
+                        <p class="muted" style="margin-bottom:12px">For a worry that came by phone call or a visit, not by SMS.</p>
+                        <div class="field">
+                            <label for="sign">Concern</label>
+                            <select id="sign" name="sign">
+                                @foreach (var s in Model.Signs) { <option value="@s.Code">@s.NameEn</option> }
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="note">Note</label>
+                            <textarea id="note" name="note" required placeholder="What you heard and from whom"></textarea>
+                        </div>
+                        <button class="btn" type="submit">Open case</button>
+                    </form>
+                </details>
+            }
+        }
+
+        @if (Model.Flags.Count > 0)
+        {
+            <div class="panel">
+                <h2 style="margin-bottom:12px">Cases</h2>
+                <ul class="alerts">
+                    @foreach (var f in Model.Flags)
+                    {
+                        <li><a href="/cases/details/@f.Id"><b>@Ui.SignNames(f.Signs, Model.Signs)</b></a><br /><span class="muted">@Ui.State(f.State), raised @Ui.When(f.CreatedAt)</span></li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <div class="panel">
+            <h2 style="margin-bottom:12px">Manage</h2>
+            <div class="btn-row">
+                @if (Model.ShowSimulator && Model.Role != Roles.Chw)
+                {
+                    <a class="btn secondary small" href="/simulator?id=@m.Id">Open her phone in the simulator</a>
+                }
+                <form method="post" asp-action="SetOptOut" asp-route-id="@m.Id">
+                    <input type="hidden" name="optedOut" value="@(m.OptedOutAt is null ? "true" : "false")" />
+                    <button class="btn secondary small" type="submit">@(m.OptedOutAt is null ? "Stop her messages" : "Restart her messages")</button>
+                </form>
+                @if (m.PregnancyId is not null && live is null)
+                {
+                    <form method="post" asp-action="EndPregnancy" asp-route-id="@m.Id">
+                        <input type="hidden" name="outcome" value="delivered" />
+                        <button class="btn secondary small" type="submit">Record delivery</button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>

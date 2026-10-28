@@ -1,0 +1,121 @@
+@model RulesVm
+@{
+    ViewData["Title"] = "Rules";
+    var byCode = Model.Lexicon.Where(l => l.Kind == "danger").GroupBy(l => l.SignCode!).ToDictionary(g => g.Key, g => g.ToList());
+    var well = Model.Lexicon.Where(l => l.Kind == "well").ToList();
+    var negations = Model.Lexicon.Where(l => l.Kind == "negation").ToList();
+}
+<div class="page-head">
+    <div>
+        <h1>Danger-sign rules</h1>
+        <p>These decide what raises a case, how urgent it is, and what she is told at once. Changes apply to the next reply.</p>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div>
+        @foreach (var s in Model.Signs)
+        {
+            var phrases = byCode.GetValueOrDefault(s.Code) ?? [];
+            <details class="rule">
+                <summary>
+                    <span><b>@s.NameEn</b> <span class="muted">@s.NameSw@(s.MenuOption is int o ? $", menu {o}" : "")</span></span>
+                    <span class="sev @s.Severity">@Ui.Severity(s.Severity)</span>
+                    <span class="quiet">@(s.SlaMinutes < 120 ? $"{s.SlaMinutes} min" : $"{s.SlaMinutes / 60.0:0.#} h")</span>
+                </summary>
+                <div class="body">
+                    <form method="post" asp-action="UpdateSign">
+                        <input type="hidden" name="code" value="@s.Code" />
+                        <div class="row">
+                            <div class="field">
+                                <label for="sev-@s.Code">Severity</label>
+                                <select id="sev-@s.Code" name="severity">
+                                    @foreach (var v in new[] { "high", "medium", "low" }) { <option value="@v" selected="@(v == s.Severity)">@Ui.Severity(v) (@v)</option> }
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label for="sla-@s.Code">Response time, minutes</label>
+                                <input id="sla-@s.Code" name="slaMinutes" type="number" min="5" max="10080" value="@s.SlaMinutes" />
+                            </div>
+                        </div>
+                        <div class="field"><label for="g-@s.Code">What the CHW should do</label><textarea id="g-@s.Code" name="chwGuidance">@s.ChwGuidance</textarea></div>
+                        <div class="field"><label for="asw-@s.Code">SMS sent to her at once, Swahili</label><span class="hint">Leave empty to send only the standard "your health worker will contact you" reply.</span><textarea id="asw-@s.Code" name="adviceSw">@s.AdviceSw</textarea></div>
+                        <div class="field"><label for="aen-@s.Code">SMS sent to her at once, English</label><textarea id="aen-@s.Code" name="adviceEn">@s.AdviceEn</textarea></div>
+                        <button class="btn small" type="submit">Save rule</button>
+                    </form>
+                    <h3 style="margin:20px 0 8px">Words that mean this</h3>
+                    <div class="phrases">
+                        @foreach (var p in phrases)
+                        {
+                            <form method="post" asp-action="DeletePhrase" class="phrase">@p.Phrase <em>@Ui.Lang(p.Language)</em><input type="hidden" name="id" value="@p.Id" /><button type="submit" aria-label="Remove @p.Phrase">×</button></form>
+                        }
+                        @if (phrases.Count == 0) { <span class="quiet">None yet. Add phrases CHWs hear from mothers.</span> }
+                    </div>
+                </div>
+            </details>
+        }
+
+        <details class="rule">
+            <summary><span><b>Words that mean she is well</b></span><span></span><span class="quiet">@well.Count</span></summary>
+            <div class="body phrases">
+                @foreach (var p in well)
+                {
+                    <form method="post" asp-action="DeletePhrase" class="phrase">@p.Phrase <em>@Ui.Lang(p.Language)</em><input type="hidden" name="id" value="@p.Id" /><button type="submit" aria-label="Remove @p.Phrase">×</button></form>
+                }
+            </div>
+        </details>
+        <details class="rule">
+            <summary><span><b>Words that negate</b> <span class="muted">"sina damu" is not bleeding</span></span><span></span><span class="quiet">@negations.Count</span></summary>
+            <div class="body phrases">
+                @foreach (var p in negations)
+                {
+                    <form method="post" asp-action="DeletePhrase" class="phrase">@p.Phrase <em>@Ui.Lang(p.Language)</em><input type="hidden" name="id" value="@p.Id" /><button type="submit" aria-label="Remove @p.Phrase">×</button></form>
+                }
+            </div>
+        </details>
+    </div>
+
+    <div class="stack">
+        <form class="panel" method="post" asp-action="Test" data-tester>
+            <h2 style="margin-bottom:4px">Try a reply</h2>
+            <p class="muted" style="margin-bottom:12px">See how the rules read a message. Nothing is sent or saved.</p>
+            <div class="field"><label for="text" class="visually-hidden">Reply</label><input id="text" name="text" type="text" placeholder="e.g. tumbo inaniua tangu jana" /></div>
+            <button class="btn secondary" type="submit">Check reply</button>
+            <div class="tester-result" aria-live="polite"></div>
+        </form>
+
+        <form class="panel" method="post" asp-action="AddPhrase">
+            <h2 style="margin-bottom:4px">Add a phrase</h2>
+            <p class="muted" style="margin-bottom:12px">Add the words mothers actually use, including Sheng and local spellings.</p>
+            <div class="field"><label for="phrase">Phrase</label><input id="phrase" name="phrase" type="text" required /></div>
+            <div class="row">
+                <div class="field">
+                    <label for="kind">It means</label>
+                    <select id="kind" name="kind"><option value="danger">A danger sign</option><option value="well">She is well</option><option value="negation">"Not" / "no"</option></select>
+                </div>
+                <div class="field">
+                    <label for="signCode">Which sign</label>
+                    <select id="signCode" name="signCode">@foreach (var s in Model.Signs.Where(s => s.Code != "UNCLEAR")) { <option value="@s.Code">@s.NameEn</option> }</select>
+                </div>
+            </div>
+            <div class="field">
+                <span class="label">Language</span>
+                <div class="choice">
+                    <label><input type="radio" name="language" value="sw" checked /> Swahili</label>
+                    <label><input type="radio" name="language" value="sheng" /> Sheng</label>
+                    <label><input type="radio" name="language" value="en" /> English</label>
+                </div>
+            </div>
+            <button class="btn" type="submit">Add phrase</button>
+        </form>
+
+        <div class="panel">
+            <h2 style="margin-bottom:8px">How a reply is read</h2>
+            <ol style="margin:0; padding-left:20px" class="muted">
+                <li>Menu numbers and the phrases here are matched first. A match always raises a case.</li>
+                <li>If nothing matches, the language model reads it. It can only add a sign it can quote from her message.</li>
+                <li>If the model is unsure or offline, the reply goes to her CHW to read.</li>
+            </ol>
+        </div>
+    </div>
+</div>

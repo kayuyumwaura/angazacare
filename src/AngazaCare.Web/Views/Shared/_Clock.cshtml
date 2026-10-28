@@ -1,0 +1,21 @@
+@model Flag
+@{
+    // Response clock: how much of the response time is left. Closed and assessed cases show where they stopped.
+    var done = !Model.IsLive || Model.State == FlagStates.Assessed;
+    var total = (Model.SlaDueAt - Model.CreatedAt).TotalMilliseconds;
+    var left = (Model.SlaDueAt - DateTime.UtcNow).TotalMilliseconds;
+    var frac = done ? 1 : Math.Clamp(left / Math.Max(1, total), 0, 1);
+    var css = done ? "done" : left <= 0 ? "over" : frac < 0.25 ? "late" : "";
+    string doneText = Model.State switch
+    {
+        FlagStates.Assessed => "Visited, waiting for nurse",
+        FlagStates.Approved => "Referred " + Ui.Ago(Model.DecidedAt ?? Model.UpdatedAt),
+        FlagStates.Rejected => "Closed " + Ui.Ago(Model.DecidedAt ?? Model.UpdatedAt),
+        _ => "",
+    };
+}
+<div class="clock @css" style="--left:@((frac * 100).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture))%"
+     data-due="@Ui.Iso(Model.SlaDueAt)" data-start="@Ui.Iso(Model.CreatedAt)" data-done="@(done ? "true" : "false")">
+    <div class="clock-bar" aria-hidden="true"></div>
+    <div class="clock-text">@(done ? doneText : left <= 0 ? "Overdue" : "Respond by " + Ui.Local(Model.SlaDueAt).ToString("HH:mm"))</div>
+</div>

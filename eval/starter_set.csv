@@ -1,0 +1,29 @@
+text,language,expected,variety,note
+niko poa sana,sw,WELL,sheng,
+nina damu kidogo leo asubuhi,sw,BLEED,sw,
+natoka blood since jana,sw,BLEED,sheng,
+nimeona spotting kwa pant,sw,BLEED,sheng,
+sina damu ila kichwa inaniuma mbaya,sw,HEADVIS,sheng,negation then sign
+macho yangu yanaona ukungu,sw,HEADVIS,sw,blurred vision without lexicon words
+head inadunda sana tangu juzi,sw,HEADVIS,sheng,
+mtoto hajacheza leo kabisa,sw,FETALMOV,sw,
+beby haja kick tangu jana usiku,sw,FETALMOV,sheng,
+baby has been very quiet since morning,en,FETALMOV,en,indirect
+mwili iko moto na natetemeka,sw,FEVER,sheng,
+nina homa kali,sw,FEVER,sw,
+uso wangu umefura,sw,SWELL,sw,umefura not in lexicon
+vidole vimevimba siwezi vaa pete,sw,SWELL,sw,indirect
+tumbo inaniuma mbaya sana siwezi simama,sw,ABDPAIN,sheng,
+maji maji inatoka huko chini,sw,FLUID,sheng,euphemism
+my water broke this morning,en,FLUID,en,
+nashindwa kupumua vizuri usiku,sw,BREATH,sw,
+alipata kifafa jana usiku,sw,CONVULS,sw,reported by relative
+nimechoka tu kazi ni mingi,sw,WELL|UNCLEAR,sw,tired: no danger sign
+miguu imevimba kidogo kama kawaida,sw,WELL|UNCLEAR,sw,leg swelling only: not a WHO danger sign
+mgongo unauma kidogo,sw,WELL|UNCLEAR,sw,mild back pain
+niko sawa lakini nina wasiwasi,sw,WELL|UNCLEAR,sw,worry
+fine thank you nurse,en,WELL,en,
+kila kitu iko fiti,sw,WELL,sheng,
+nina damu na tumbo inauma sana,sw,BLEED|ABDPAIN,sw,two signs
+kichwa na homa,sw,HEADVIS|FEVER,sw,two signs
+sijisikii poa,sw,UNCLEAR,sheng,negated well

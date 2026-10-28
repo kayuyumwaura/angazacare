@@ -1,0 +1,50 @@
+@model MotherListVm
+@{ ViewData["Title"] = "Mothers"; }
+<div class="page-head">
+    <div>
+        <h1>Mothers</h1>
+        <p>@Model.Mothers.Count @(Model.Mothers.Count == 1 ? "mother" : "mothers")@(string.IsNullOrEmpty(Model.Filter) ? "" : $" matching \"{Model.Filter}\"").</p>
+    </div>
+    <form method="get" style="min-width:min(100%, 320px)">
+        <label class="visually-hidden" for="filter">Search by name, village or last 3 digits</label>
+        <input id="filter" name="filter" type="search" value="@Model.Filter" placeholder="Name, village or last 3 digits" />
+    </form>
+</div>
+
+@if (Model.Mothers.Count == 0)
+{
+    <div class="empty"><b>No mothers found</b>@(string.IsNullOrEmpty(Model.Filter) ? "Enrol a mother to start her weekly check-ins." : "Try a different name or village.")</div>
+}
+else
+{
+    <table class="list">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Weeks</th>
+                <th class="hide-sm">Village</th>
+                @if (Model.ShowChw) { <th class="hide-sm">CHW</th> }
+                <th class="hide-sm">Last reply</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var m in Model.Mothers)
+            {
+                <tr>
+                    <td><a class="rowlink" href="/mothers/details/@m.Id">@m.DisplayName</a> <span class="quiet">..@m.PhoneLast3</span></td>
+                    <td>@(m.PregnancyId is null ? "–" : m.GestationWeeks?.ToString())</td>
+                    <td class="hide-sm">@m.Village</td>
+                    @if (Model.ShowChw) { <td class="hide-sm">@m.ChwName</td> }
+                    <td class="hide-sm">@(m.LastReplyAt is DateTime r ? Ui.Ago(r) : "No reply yet")</td>
+                    <td>
+                        @if (m.LiveFlagState is not null) { <span class="sev @m.LiveFlagSeverity">@Ui.State(m.LiveFlagState)</span> }
+                        else if (m.OptedOutAt is not null) { <span class="tag">Opted out</span> }
+                        else if (m.PregnancyId is null) { <span class="tag">Follow-up ended</span> }
+                        else { <span class="tag jade">Routine</span> }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

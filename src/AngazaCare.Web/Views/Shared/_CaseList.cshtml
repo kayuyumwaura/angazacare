@@ -1,0 +1,21 @@
+@model (List<Flag> Flags, List<DangerSign> Signs, bool ShowChw)
+<ul class="cases">
+    @foreach (var f in Model.Flags)
+    {
+        <li>
+            <a class="case @f.Severity" href="/cases/details/@f.Id">
+                <span class="case-edge" aria-hidden="true"></span>
+                <span>
+                    <span class="case-name">
+                        <b>@f.MotherName</b>
+                        <span class="sev @f.Severity">@Ui.Severity(f.Severity)</span>
+                        <span class="state @f.State">@Ui.State(f.State)</span>
+                    </span>
+                    <span class="case-signs" style="display:block">@Ui.SignNames(f.Signs, Model.Signs)</span>
+                    <span class="case-meta" style="display:block">@string.Join(", ", new[] { f.Village, f.GestationWeeks is int w ? $"{w} weeks" : null, Model.ShowChw ? $"CHW {f.ChwName}" : null }.Where(x => x is not null)). Raised @Ui.Ago(f.CreatedAt).</span>
+                </span>
+                <partial name="_Clock" model="f" />
+            </a>
+        </li>
+    }
+</ul>

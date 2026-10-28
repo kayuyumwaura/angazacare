@@ -1,0 +1,59 @@
+@model MetricsVm
+@{
+    ViewData["Title"] = "Numbers";
+    var h = Model.Headline;
+    string Pct(int a, int b) => b == 0 ? "–" : $"{Math.Round(100.0 * a / b)}%";
+    string Mins(double? m) => m is null ? "–" : m < 1 ? "<1 min" : m < 90 ? $"{Math.Round(m.Value)} min" : $"{Math.Round(m.Value / 60, 1)} h";
+    var maxSign = Math.Max(1, Model.BySign.Max(r => r.Count));
+    var methods = Model.ByMethod.GroupBy(r => r.Key).Select(g => (Method: g.Key, Total: g.Sum(x => x.Count), Parts: g.ToList())).ToList();
+    var maxMethod = Math.Max(1, methods.Count == 0 ? 1 : methods.Max(m => m.Total));
+}
+<div class="page-head">
+    <div>
+        <h1>Numbers</h1>
+        <p>Counts and timings only. No names or phone numbers appear on this page, so it can be shared.</p>
+    </div>
+</div>
+
+<div class="stats six">
+    <div class="stat"><b>@h.Mothers</b><span>mothers enrolled (@h.OptedOut opted out)</span></div>
+    <div class="stat"><b>@Pct(h.CheckInsReplied, h.CheckInsSent)</b><span>of @h.CheckInsSent check-ins answered</span></div>
+    <div class="stat"><b>@(h.MedianSecondsToAlert is double s ? (s < 1 ? "<1 s" : s < 60 ? $"{Math.Round(s)} s" : Mins(s / 60)) : "–")</b><span>median, danger reply to CHW alert</span></div>
+    <div class="stat"><b>@Mins(h.MedianMinutesToAck)</b><span>median, alert to CHW response</span></div>
+    <div class="stat"><b>@Mins(h.MedianMinutesToDecision)</b><span>median, alert to nurse decision</span></div>
+    <div class="stat"><b>@Pct(h.SlaMet, h.SlaDecidable)</b><span>of cases answered within response time</span></div>
+</div>
+
+<div class="grid-2 section">
+    <div class="panel">
+        <div class="panel-head"><h2>Cases by danger sign</h2><span class="quiet">@h.FlagsTotal cases, @h.FlagsLive open</span></div>
+        <ul class="bars">
+            @foreach (var r in Model.BySign)
+            {
+                <li><span>@r.Key</span><span class="track"><span class="fill @r.Sub" style="width:@(100 * r.Count / maxSign)%; display:block"></span></span><span class="n">@r.Count</span></li>
+            }
+        </ul>
+    </div>
+    <div class="stack">
+        <div class="panel">
+            <div class="panel-head"><h2>How replies were read</h2></div>
+            <ul class="bars">
+                @foreach (var m in methods)
+                {
+                    <li><span>@Ui.Method(m.Method)<br /><span class="quiet">@string.Join(", ", m.Parts.Select(p => $"{p.Count} {p.Sub}"))</span></span>
+                        <span class="track"><span class="fill" style="width:@(100 * m.Total / maxMethod)%; display:block"></span></span><span class="n">@m.Total</span></li>
+                }
+            </ul>
+            <p class="quiet" style="margin-top:16px">Menu numbers and known phrases are decided by fixed rules. The language model only reads replies the rules cannot, and it can raise a case but never close one.</p>
+        </div>
+        <div class="panel">
+            <div class="panel-head"><h2>Cases by status</h2></div>
+            <dl class="dl">
+                @foreach (var r in Model.ByState.OrderBy(r => Array.IndexOf(new[] { "open", "acknowledged", "escalated", "assessed", "approved", "rejected" }, r.Key)))
+                {
+                    <dt>@Ui.State(r.Key)</dt><dd>@r.Count</dd>
+                }
+            </dl>
+        </div>
+    </div>
+</div>

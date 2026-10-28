@@ -1,0 +1,56 @@
+@model NurseQueueVm
+@{
+    ViewData["Title"] = "Queue";
+    var h = Model.Headline;
+}
+<div class="page-head">
+    <div>
+        <h1>Referral queue</h1>
+        <p>@(Model.NeedsDecision.Count switch { 0 => "No case is waiting for your decision.", 1 => "One case is waiting for your decision.", var n => $"{n} cases are waiting for your decision." })</p>
+    </div>
+</div>
+
+@if (Model.NeedsDecision.Count == 0)
+{
+    <div class="empty"><b>Nothing to decide</b>Cases arrive here once a CHW has visited, or when a CHW misses the response time.</div>
+}
+else
+{
+    <partial name="_CaseList" model="(Model.NeedsDecision, Model.Signs, true)" />
+}
+
+<section class="section">
+    <div class="panel-head">
+        <h2>With CHWs now</h2>
+        <span class="quiet">You can open any of these early.</span>
+    </div>
+    @if (Model.Watching.Count == 0)
+    {
+        <div class="empty">No open cases with CHWs.</div>
+    }
+    else
+    {
+        <partial name="_CaseList" model="(Model.Watching, Model.Signs, true)" />
+    }
+</section>
+
+@if (h is not null)
+{
+    <section class="section">
+        <div class="panel-head"><h2>This programme so far</h2><a href="/nurse/metrics">All numbers</a></div>
+        <div class="stats">
+            <div class="stat"><b>@h.ActivePregnancies</b><span>mothers in follow-up</span></div>
+            <div class="stat"><b>@(h.CheckInsSent == 0 ? "–" : $"{100 * h.CheckInsReplied / h.CheckInsSent}%")</b><span>of check-ins answered</span></div>
+            <div class="stat"><b>@h.Referrals</b><span>referrals approved</span></div>
+            <div class="stat"><b>@h.Escalated</b><span>cases escalated for a missed response time</span></div>
+        </div>
+    </section>
+}
+
+@if (Model.RecentlyDecided.Count > 0)
+{
+    <section class="section">
+        <h2>Recently decided</h2>
+        <partial name="_CaseList" model="(Model.RecentlyDecided, Model.Signs, true)" />
+    </section>
+}

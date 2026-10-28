@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>AngazaCare</RootNamespace>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <UserSecretsId>52416d2d-ffe5-4f0f-aaaa-de1e0e7a7543</UserSecretsId>
+  </PropertyGroup>
+
+  <!-- Normal builds use the Npgsql package. Offline builds can point LocalNpgsql at a locally built Npgsql.dll. -->
+  <ItemGroup Condition="'$(LocalNpgsql)' == ''">
+    <PackageReference Include="Npgsql" Version="8.0.5" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(LocalNpgsql)' != ''">
+    <Reference Include="Npgsql"><HintPath>$(LocalNpgsql)</HintPath></Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\db\*.sql" Link="db\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AngazaCare.Tests" />
+  </ItemGroup>
+
+</Project>

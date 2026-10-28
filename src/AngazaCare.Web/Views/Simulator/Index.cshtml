@@ -1,0 +1,115 @@
+@model SimulatorVm
+@{
+    ViewData["Title"] = "Phone simulator";
+    var m = Model.Selected;
+    var samples = new[]
+    {
+        ("1", "1"), ("2", "2"), ("Sheng: headache", "kichwa inaniuma sana na naona giza"), ("Swahili: bleeding", "natoka damu kidogo"),
+        ("Negated", "sina damu, niko poa"), ("Mixed: but", "niko sawa lakini mtoto hachezi sana"), ("Vague", "najisikia vibaya tu"), ("Stop", "STOP"),
+    };
+}
+<div class="page-head">
+    <div>
+        <h1>Phone simulator</h1>
+        <p>See exactly what a mother receives, and reply as her. Replies go through the same code as real SMS and USSD.</p>
+    </div>
+    <form method="post" asp-action="RunEscalations" asp-route-id="@m?.Id">
+        <button class="btn secondary" type="submit">Check response times now</button>
+    </form>
+</div>
+
+<div class="sim">
+    <ul class="sim-list" aria-label="Test mothers">
+        @foreach (var x in Model.Mothers)
+        {
+            <li>
+                <a href="?id=@x.Id" aria-current="@(x.Id == m?.Id ? "true" : null)">
+                    <span><b>@x.DisplayName</b><small>@x.Village</small></span>
+                    @if (x.LiveFlagState is not null) { <span class="sev @x.LiveFlagSeverity">@Ui.State(x.LiveFlagState)</span> }
+                </a>
+            </li>
+        }
+    </ul>
+
+    @if (m is not null)
+    {
+        <div>
+            <div class="phone">
+                <div class="phone-screen">
+                    <div class="phone-top"><b>@m.DisplayName's phone</b><span>@(m.Discreet ? "Discreet messages, " : "")@Ui.Lang(m.Language), number ends ..@m.PhoneLast3</span></div>
+                    <div class="phone-tabs" role="tablist">
+                        <button type="button" role="tab" aria-selected="true" data-tab="sms">SMS</button>
+                        <button type="button" role="tab" aria-selected="false" data-tab="ussd">USSD *384#</button>
+                    </div>
+                    <div class="phone-body" data-panel="sms">
+                        <div class="thread">
+                            @foreach (var msg in Model.Messages)
+                            {
+                                <div class="bubble @(msg.Direction == "in" ? "in" : "out")">@msg.Body</div>
+                                <div class="bubble-meta @msg.Direction">@(msg.Channel == "ussd" ? "USSD, " : "")@Ui.When(msg.CreatedAt)</div>
+                            }
+                        </div>
+                    </div>
+                    <div class="phone-body" data-panel="ussd" hidden>
+                        <div data-ussd data-mother="@m.Id" data-action="/simulator/ussd">
+                            @Html.AntiForgeryToken()
+                            <div class="ussd" aria-live="polite">Press dial to start a USSD session.</div>
+                            <form class="phone-input" style="padding:12px 0 0; background:none; border:0">
+                                <input name="entry" type="text" inputmode="text" placeholder="Your choice" aria-label="USSD entry" />
+                                <button class="btn" type="submit">Send</button>
+                            </form>
+                            <div class="btn-row" style="margin-top:8px">
+                                <button class="btn secondary small" type="button" data-ussd-dial>Dial *384#</button>
+                                <span class="quiet" data-ussd-done hidden>Session ended. Her reply is in the SMS tab history.</span>
+                            </div>
+                        </div>
+                    </div>
+                    <form class="phone-input" method="post" asp-action="Reply" asp-route-id="@m.Id" data-panel="sms">
+                        <input id="reply" name="text" type="text" placeholder="Reply as @m.DisplayName" autocomplete="off" aria-label="Reply as @m.DisplayName" />
+                        <button class="btn" type="submit">Send</button>
+                    </form>
+                </div>
+            </div>
+            <div class="chips" aria-label="Sample replies">
+                @foreach (var (label, text) in samples)
+                {
+                    <button type="button" class="chip" data-fill="@text" data-target="#reply" title="@text">@label</button>
+                }
+            </div>
+        </div>
+
+        <div class="stack">
+            <div class="panel">
+                <h2 style="margin-bottom:8px">Send a check-in</h2>
+                <p class="muted" style="margin-bottom:12px">Check-ins also go out on their own on schedule. Use this to show one now.</p>
+                <form method="post" asp-action="CheckIn" asp-route-id="@m.Id"><button class="btn secondary" type="submit">Send check-in to @m.DisplayName</button></form>
+                <p style="margin-top:12px"><a href="/mothers/details/@m.Id">Her record</a></p>
+            </div>
+            <div class="panel">
+                <div class="panel-head"><h2>Staff SMS alerts</h2><span class="tag @(Model.Gateway == "simulator" ? "gold" : "jade")">@(Model.Gateway == "simulator" ? "Simulated" : "Live gateway")</span></div>
+                @if (Model.StaffAlerts.Count == 0) { <p class="muted">No alerts yet.</p> }
+                <ul class="alerts">
+                    @foreach (var a in Model.StaffAlerts)
+                    {
+                        <li>@a.Body<br /><span class="quiet">@Ui.When(a.CreatedAt)</span></li>
+                    }
+                </ul>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="empty"><b>No mothers yet</b>Enrol a mother as a CHW to try the simulator.</div>
+    }
+</div>
+
+@section Scripts {
+<script>
+document.querySelectorAll("[data-tab]").forEach(function (tab) {
+  tab.addEventListener("click", function () {
+    document.querySelectorAll("[data-tab]").forEach(function (t) { t.setAttribute("aria-selected", t === tab ? "true" : "false"); });
+    document.querySelectorAll("[data-panel]").forEach(function (p) { p.hidden = p.dataset.panel !== tab.dataset.tab; });
+  });
+});
+</script>
+}

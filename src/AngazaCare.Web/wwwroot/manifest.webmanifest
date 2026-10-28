@@ -1,0 +1,12 @@
+{
+  "name": "Angaza Care",
+  "short_name": "Angaza",
+  "description": "Antenatal follow-up for community health workers and nurses.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f6f2",
+  "theme_color": "#15302b",
+  "icons": [
+    { "src": "/img/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

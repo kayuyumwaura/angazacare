@@ -1,0 +1,48 @@
+@model List<AppUser>
+@{
+    ViewData["Title"] = "Staff";
+    var facilities = (List<Facility>)ViewBag.Facilities;
+}
+<div class="page-head">
+    <div>
+        <h1>Staff</h1>
+        <p>People who can sign in. CHWs and nurses also receive alerts by SMS on these numbers.</p>
+    </div>
+</div>
+<div class="grid-2">
+    <table class="list">
+        <thead><tr><th>Name</th><th>Role</th><th class="hide-sm">Phone</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var u in Model)
+            {
+                <tr>
+                    <td><b>@u.FullName</b>@if (!u.Active) { <span class="tag" style="margin-left:6px">Inactive</span> }<br /><span class="quiet">@(facilities.FirstOrDefault(f => f.Id == u.FacilityId)?.Name)</span></td>
+                    <td>@(u.Role switch { Roles.Chw => "CHW", Roles.Nurse => "Nurse", _ => "Admin" })</td>
+                    <td class="hide-sm">@u.Phone</td>
+                    <td>
+                        <form method="post" asp-action="SetActive">
+                            <input type="hidden" name="id" value="@u.Id" /><input type="hidden" name="active" value="@(u.Active ? "false" : "true")" />
+                            <button class="btn ghost small" type="submit">@(u.Active ? "Deactivate" : "Reactivate")</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <form class="panel" method="post" asp-action="Add">
+        <h2 style="margin-bottom:16px">Add a person</h2>
+        <div class="field"><label for="fullName">Full name</label><input id="fullName" name="fullName" type="text" required /></div>
+        <div class="field"><label for="phone">Phone</label><input id="phone" name="phone" type="tel" required placeholder="0712 345 678" /></div>
+        <div class="field">
+            <span class="label">Role</span>
+            <div class="choice">
+                <label><input type="radio" name="role" value="chw" checked /> CHW</label>
+                <label><input type="radio" name="role" value="nurse" /> Nurse</label>
+                <label><input type="radio" name="role" value="admin" /> Admin</label>
+            </div>
+        </div>
+        <div class="field"><label for="facilityId">Link facility</label><select id="facilityId" name="facilityId">@foreach (var f in facilities) { <option value="@f.Id">@f.Name</option> }</select></div>
+        <div class="field"><label for="password">Temporary password</label><span class="hint">At least 10 characters. Share it in person.</span><input id="password" name="password" type="password" required minlength="10" autocomplete="new-password" /></div>
+        <button class="btn" type="submit">Add person</button>
+    </form>
+</div>

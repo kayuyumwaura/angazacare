@@ -1,0 +1,192 @@
+@model CaseVm
+@{
+    var f = Model.Flag;
+    var m = Model.Mother;
+    ViewData["Title"] = $"{f.MotherName}, case {f.Id}";
+    var caseSigns = Model.Signs.Where(s => f.Signs.Contains(s.Code)).ToList();
+    var isChw = Model.Role == Roles.Chw;
+    var assessments = Model.Assessments.ToDictionary(a => a.MessageId);
+    string? phone = ViewBag.Phone as string;
+    string EventClass(FlagEvent e) => e.ToState switch
+    {
+        FlagStates.Escalated => "alarm",
+        FlagStates.Approved or FlagStates.Rejected => "decision",
+        _ => e.ActorName is null ? "system" : "person",
+    };
+}
+<a class="back" href="@(isChw ? "/chw" : "/nurse")">@Ui.Icon("back", 16) @(isChw ? "Cases" : "Queue")</a>
+
+<section class="panel">
+    <div class="case-hero">
+        <div>
+            <h1>@f.MotherName <span class="sev @f.Severity">@Ui.Severity(f.Severity)</span> <span class="state @f.State">@Ui.State(f.State)</span></h1>
+            <div class="signs">@Ui.SignNames(f.Signs, Model.Signs)</div>
+            <div class="facts">
+                @if (f.GestationWeeks is int w) { <span><b>@w weeks</b> pregnant</span> }
+                <span>@f.Village</span>
+                <span>CHW <b>@f.ChwName</b></span>
+                <span>Messages in <b>@Ui.Lang(m.Language)</b>@(m.Discreet ? ", discreet" : "")</span>
+                <span>Raised <b>@Ui.When(f.CreatedAt)</b>@(f.Source == "engine" ? " from her reply" : " by staff")</span>
+            </div>
+        </div>
+        <div class="stack">
+            <partial name="_Clock" model="f" />
+            @if (phone is not null)
+            {
+                <a class="btn secondary block" href="tel:@phone">Call @f.MotherName, @phone</a>
+            }
+        </div>
+    </div>
+</section>
+
+<div class="grid-2 section" style="margin-top:16px">
+    <div class="stack">
+        @if (Model.CanAcknowledge || (Model.CanAssess && isChw))
+        {
+            <div class="panel action-panel">
+                <h2 style="margin-bottom:12px">What to do</h2>
+                @foreach (var s in caseSigns)
+                {
+                    <div class="guidance"><b>@s.NameEn</b>@s.ChwGuidance</div>
+                }
+                @if (Model.CanAcknowledge)
+                {
+                    <form method="post" asp-action="Acknowledge" asp-route-id="@f.Id" data-offline style="margin-top:16px">
+                        <button class="btn" type="submit">I have seen this, calling her now</button>
+                        <p class="quiet" data-saved hidden style="margin-top:8px">Saved on this phone. It will send when you have signal.</p>
+                    </form>
+                }
+            </div>
+        }
+
+        @if (Model.CanAssess && isChw)
+        {
+            <form class="panel" method="post" asp-action="Assess" asp-route-id="@f.Id" data-offline>
+                <h2 style="margin-bottom:4px">Record your visit</h2>
+                <p class="muted" style="margin-bottom:16px">The nurse decides on referral from what you write here.</p>
+                <div class="field">
+                    <label for="Findings">What did you find?</label>
+                    <textarea id="Findings" name="Findings" required placeholder="How she is, what she told you, what you saw"></textarea>
+                </div>
+                <div class="row">
+                    <div class="field"><label for="BpSystolic">BP, top number</label><input id="BpSystolic" name="BpSystolic" type="number" inputmode="numeric" min="60" max="260" /></div>
+                    <div class="field"><label for="BpDiastolic">BP, bottom number</label><input id="BpDiastolic" name="BpDiastolic" type="number" inputmode="numeric" min="30" max="160" /></div>
+                    <div class="field"><label for="TemperatureC">Temperature °C</label><input id="TemperatureC" name="TemperatureC" type="number" inputmode="decimal" step="0.1" min="34" max="43" /></div>
+                </div>
+                <div class="field">
+                    <span class="label">Your recommendation</span>
+                    <div class="choice">
+                        <label><input type="radio" name="Recommendation" value="refer" required /> Refer to a facility</label>
+                        <label><input type="radio" name="Recommendation" value="close" /> No referral needed</label>
+                    </div>
+                </div>
+                <button class="btn" type="submit">Send to nurse</button>
+                <p class="quiet" data-saved hidden style="margin-top:8px">Saved on this phone. It will send when you have signal.</p>
+            </form>
+        }
+
+        @if (f.ChwFindings is not null)
+        {
+            <div class="panel">
+                <div class="panel-head"><h2>CHW visit</h2><span class="quiet">@(f.AssessedAt is DateTime at ? Ui.When(at) : "")</span></div>
+                <p>@f.ChwFindings</p>
+                <dl class="dl" style="margin-top:16px">
+                    @if (f.BpSystolic is not null) { <dt>Blood pressure</dt><dd>@f.BpSystolic/@f.BpDiastolic@(f.BpSystolic >= 140 || f.BpDiastolic >= 90 ? " (raised)" : "")</dd> }
+                    @if (f.TemperatureC is not null) { <dt>Temperature</dt><dd>@f.TemperatureC?.ToString("0.0") °C@(f.TemperatureC >= 38 ? " (fever)" : "")</dd> }
+                    <dt>Recommends</dt><dd>@(f.ChwRecommendation == "refer" ? "Referral" : "No referral")</dd>
+                </dl>
+            </div>
+        }
+
+        @if (Model.CanDecide)
+        {
+            <form class="panel action-panel decide" method="post" asp-action="Decide" asp-route-id="@f.Id">
+                <h2 style="margin-bottom:4px">Your decision</h2>
+                <p class="muted" style="margin-bottom:16px">@(f.State == FlagStates.Escalated && f.ChwFindings is null ? "No CHW has visited yet. Call her or the CHW before deciding." : "Nothing reaches her until you decide.")</p>
+                <div class="field">
+                    <div class="choice" data-decision>
+                        <label><input type="radio" name="Decision" value="approve" checked="@(f.ChwRecommendation != "close")" /> Approve referral</label>
+                        <label><input type="radio" name="Decision" value="close" checked="@(f.ChwRecommendation == "close")" /> Close without referral</label>
+                    </div>
+                </div>
+                <div data-when="approve">
+                    <div class="field">
+                        <label for="FacilityId">Facility</label>
+                        <select id="FacilityId" name="FacilityId">
+                            @foreach (var fac in Model.Facilities)
+                            {
+                                <option value="@fac.Id">@fac.Name, @fac.Level</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="field">
+                        <span class="label">How soon</span>
+                        <div class="choice">
+                            <label><input type="radio" name="Urgency" value="emergency" checked="@(f.Severity == "high" && f.Signs.Contains("CONVULS"))" /> Now, emergency</label>
+                            <label><input type="radio" name="Urgency" value="same_day" checked="@(!(f.Severity == "high" && f.Signs.Contains("CONVULS")))" /> Today</label>
+                            <label><input type="radio" name="Urgency" value="routine" /> Within days</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="Note">Note <span class="muted" data-when="close">(required)</span><span class="muted" data-when="approve">(optional, shared with the CHW)</span></label>
+                    <textarea id="Note" name="Note" placeholder="Reason, or instructions for the facility"></textarea>
+                </div>
+                <label class="check" data-when="close"><input type="checkbox" name="TellMother" value="true" checked /> <span>Send her an SMS that no visit is needed</span></label>
+                <input type="hidden" name="TellMother" value="false" />
+                <div class="btn-row">
+                    <button class="btn" type="submit">Confirm decision</button>
+                </div>
+                <p class="quiet" style="margin-top:12px">Approving sends her an SMS with the facility and how soon to go, and tells her CHW.</p>
+            </form>
+        }
+
+        @if (Model.Referral is { } r)
+        {
+            <div class="panel">
+                <div class="panel-head"><h2>Referral</h2><span class="tag jade">Approved</span></div>
+                <dl class="dl">
+                    <dt>Facility</dt><dd>@r.FacilityName</dd>
+                    <dt>How soon</dt><dd>@Ui.Urgency(r.Urgency)</dd>
+                    <dt>Approved by</dt><dd>@r.ApprovedByName, @Ui.When(r.CreatedAt)</dd>
+                    <dt>SMS to her</dt><dd>@(r.SmsSentAt is DateTime sent ? "Sent " + Ui.When(sent) : "Not sent")</dd>
+                    @if (!string.IsNullOrWhiteSpace(r.NurseNote)) { <dt>Note</dt><dd>@r.NurseNote</dd> }
+                </dl>
+            </div>
+        }
+
+        <div class="panel">
+            <div class="panel-head"><h2>Her recent messages</h2><a href="/mothers/details/@m.Id">Full history</a></div>
+            <div class="thread">
+                @foreach (var msg in Model.Messages)
+                {
+                    <div class="bubble @msg.Direction">@msg.Body</div>
+                    <div class="bubble-meta @msg.Direction">@(msg.Channel == "ussd" ? "USSD, " : "")@Ui.When(msg.CreatedAt)</div>
+                    @if (msg.Direction == "in" && assessments.TryGetValue(msg.Id, out var a))
+                    {
+                        <div class="read">
+                            Read by <b>@Ui.Method(a.Method)</b>:
+                            @(a.Outcome == "well" ? "no danger sign" : a.Outcome == "unclear" ? "needs a person" : Ui.SignNames(a.Signs, Model.Signs))@Ui.Quoted(a.Matched)
+                            @if (a.Model is not null) { <br /><span class="quiet">@a.Model, prompt @a.PromptVersion, confidence @a.Confidence?.ToString("0.00")</span> }
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+
+    <aside class="panel">
+        <h2 style="margin-bottom:16px">Audit trail</h2>
+        <ol class="timeline">
+            @foreach (var e in Model.Events)
+            {
+                <li class="@EventClass(e)">
+                    <div class="when">@Ui.When(e.CreatedAt)</div>
+                    <div class="who">@(e.ActorName ?? "Angaza Care") <span class="state @e.ToState">@Ui.State(e.ToState)</span></div>
+                    @if (!string.IsNullOrWhiteSpace(e.Note)) { <div class="muted">@e.Note</div> }
+                </li>
+            }
+        </ol>
+        <p class="quiet">Every change is recorded with who made it and when. Entries cannot be edited or deleted.</p>
+    </aside>
+</div>

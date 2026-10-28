@@ -1,0 +1,47 @@
+@model LoginInput
+@inject IWebHostEnvironment Env
+@inject Microsoft.Extensions.Configuration.IConfiguration Config
+@{ ViewData["Title"] = "Sign in"; }
+<div class="login">
+    <section class="login-art">
+        <a class="brand" href="/">@Ui.Mark(40)<span><b>Angaza Care</b></span></a>
+        <div>
+            <h1>Every danger sign reaches a person.</h1>
+            <p>Mothers answer weekly check-ins from any phone. When a reply shows a danger sign, her health worker is alerted at once, and a nurse approves every referral.</p>
+        </div>
+        <svg class="sun" width="420" height="420" viewBox="0 0 420 420" aria-hidden="true">
+            <circle cx="210" cy="210" r="120" fill="#e5a00d" opacity=".9"/>
+            <circle cx="210" cy="210" r="170" fill="none" stroke="#e5a00d" stroke-opacity=".25" stroke-width="2"/>
+            <circle cx="210" cy="210" r="205" fill="none" stroke="#e5a00d" stroke-opacity=".12" stroke-width="2"/>
+        </svg>
+    </section>
+    <section class="login-form">
+        <form method="post" asp-action="Login" novalidate>
+            <h2>Sign in</h2>
+            <p class="muted" style="margin-bottom:24px">Use the phone number your programme registered.</p>
+            <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+            <input type="hidden" asp-for="ReturnUrl" />
+            <div class="field">
+                <label asp-for="Phone">Phone number</label>
+                <input asp-for="Phone" type="tel" inputmode="tel" autocomplete="username" placeholder="0712 345 678" />
+                <span asp-validation-for="Phone" class="field-error"></span>
+            </div>
+            <div class="field">
+                <label asp-for="Password">Password</label>
+                <input asp-for="Password" type="password" autocomplete="current-password" />
+                <span asp-validation-for="Password" class="field-error"></span>
+            </div>
+            <button class="btn block" type="submit">Sign in</button>
+            @if (!string.IsNullOrEmpty(Config["Demo:Password"]))
+            {
+                <div class="demo-note">
+                    <b>Demo accounts</b>, password <code>@Config["Demo:Password"]</code><br />
+                    CHW Grace: 0700 000 003<br />
+                    CHW Mary: 0700 000 004<br />
+                    Nurse Amina: 0700 000 002<br />
+                    Admin: 0700 000 001
+                </div>
+            }
+        </form>
+    </section>
+</div>

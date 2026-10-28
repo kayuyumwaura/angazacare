@@ -1,0 +1,28 @@
+@model CaseListVm
+@{ ViewData["Title"] = Model.Title; }
+<div class="page-head">
+    <div>
+        <h1>@Model.Title</h1>
+        <p>@Model.Lead</p>
+    </div>
+    <a class="btn secondary" href="/chw/enrol">@Ui.Icon("enrol") Enrol a mother</a>
+</div>
+<p class="quiet" data-queue-count style="margin-bottom:12px"></p>
+
+@if (Model.Live.Count == 0)
+{
+    <div class="empty"><b>All clear</b>@Model.EmptyMessage</div>
+}
+else
+{
+    <partial name="_CaseList" model="(Model.Live, Model.Signs, false)" />
+}
+
+@if (Model.Other.Count > 0)
+{
+    <section class="section">
+        <h2>Waiting for the nurse</h2>
+        <p class="muted" style="margin-bottom:12px">You have sent your findings. The nurse will approve a referral or close the case, and you will get an SMS.</p>
+        <partial name="_CaseList" model="(Model.Other, Model.Signs, false)" />
+    </section>
+}

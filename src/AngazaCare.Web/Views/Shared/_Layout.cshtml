@@ -1,0 +1,88 @@
+@using System.Security.Claims
+@inject Microsoft.Extensions.Configuration.IConfiguration Config
+@{
+    var role = User.FindFirstValue(ClaimTypes.Role);
+    var name = User.Identity?.Name ?? "";
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+    var showSim = Config.GetValue("Demo:ShowSimulator", false);
+    string? Current(string c, string? a = null) => string.Equals(controller, c, StringComparison.OrdinalIgnoreCase)
+        && (a is null || string.Equals(action, a, StringComparison.OrdinalIgnoreCase)) ? "page" : null;
+
+    var items = new List<(string Label, string Icon, string Href, string? Current)>();
+    if (role == Roles.Chw)
+    {
+        items.Add(("Cases", "cases", "/chw", Current("Chw", "Index") ?? Current("Cases")));
+        items.Add(("Mothers", "mothers", "/mothers", Current("Mothers")));
+        items.Add(("Enrol", "enrol", "/chw/enrol", Current("Chw", "Enrol")));
+    }
+    else if (role is not null)
+    {
+        items.Add(("Queue", "queue", "/nurse", Current("Nurse", "Index") ?? Current("Cases")));
+        items.Add(("Mothers", "mothers", "/mothers", Current("Mothers")));
+        items.Add(("Numbers", "numbers", "/nurse/metrics", Current("Nurse", "Metrics")));
+        items.Add(("Rules", "rules", "/rules", Current("Rules")));
+        if (showSim) items.Add(("Phone", "phone", "/simulator", Current("Simulator")));
+        if (role == Roles.Admin) items.Add(("Staff", "staff", "/staff", Current("Staff")));
+    }
+    var roleLabel = role switch { Roles.Chw => "Community health worker", Roles.Nurse => "Nurse supervisor", Roles.Admin => "Administrator", _ => "" };
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#15302b" />
+    <title>@(ViewData["Title"] is string t ? $"{t} | Angaza Care" : "Angaza Care")</title>
+    <link rel="icon" href="/img/icon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="preload" href="/fonts/atkinson-hyperlegible-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+@if (role is null)
+{
+    @RenderBody()
+}
+else
+{
+    <div class="offline-banner" role="status">You are offline. You can read saved pages; updates you make will send when signal returns.</div>
+    <header class="topbar">
+        <a class="brand" href="/">@Ui.Mark(28)<b>Angaza Care</b></a>
+        <div class="who">@name<br /><form method="post" action="/account/logout" style="display:inline"><button type="submit" class="link-light">Sign out</button></form></div>
+    </header>
+    <div class="shell">
+        <aside class="rail">
+            <a class="brand" href="/">@Ui.Mark()<span><b>Angaza Care</b><small>Antenatal follow-up</small></span></a>
+            <nav class="nav" aria-label="Main">
+                @foreach (var i in items)
+                {
+                    <a href="@i.Href" aria-current="@i.Current">@Ui.Icon(i.Icon)<span>@i.Label</span></a>
+                }
+            </nav>
+            <div class="rail-foot">
+                <b>@name</b><span>@roleLabel</span>
+                <form method="post" action="/account/logout"><button type="submit">Sign out</button></form>
+            </div>
+        </aside>
+        <main class="main" id="main">
+            <div class="page">
+                @RenderBody()
+            </div>
+        </main>
+    </div>
+    <nav class="tabbar" aria-label="Main">
+        @foreach (var i in items.Take(5))
+        {
+            <a href="@i.Href" aria-current="@i.Current">@Ui.Icon(i.Icon, 22)<span>@i.Label</span></a>
+        }
+    </nav>
+}
+@if (TempData["Toast"] is string toast)
+{
+    <div class="toast" role="status">@toast</div>
+}
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
