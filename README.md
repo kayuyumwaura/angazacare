@@ -12,11 +12,11 @@ Built for the UNICEF Femtech Ventures call (Pillar 1: continuity of care across 
 Mother replies (SMS / USSD)
         │
         ▼
-Rules engine ── menu number or known phrase ──► danger sign ──► flag raised
+Rules engine ─ menu number or known phrase ──► danger sign ──► flag raised
         │                                                     │
         │ no match                                            ├─► CHW alerted by SMS
         ▼                                                     └─► high severity: pre-approved safety SMS to her,
-Language model (optional) ── sign it can quote ─► flag            nurses alerted
+Language model (optional) ─ sign it can quote ─► flag            nurses alerted
         │
         └── unsure / offline / error ─────────────► flag "needs a person"
 
@@ -30,7 +30,7 @@ Safety properties, each covered by tests:
 - "Well" needs a short reply of well-words with no "but" (lakini, ila) and no negated well-word.
 - The model is asked only when the rules found nothing. It can add a sign only if it quotes the words from her message; it can never close a case, and it may not call a reply with a "but" or a denial "well".
 - Model errors, timeouts and low confidence send the reply to a person.
-- Only a nurse can approve or close. The system can only escalate. Closed cases cannot move.
+- Only a nurse can approve or close. The system can only escalate. 
 - Nothing the model writes is ever sent to a mother; every SMS is a reviewed template.
 - `flag_events` rejects UPDATE and DELETE at the database level.
 
@@ -44,7 +44,7 @@ Safety properties, each covered by tests:
 | `eval/` | Harness to compare models on labelled replies (recall by language and sign) |
 | `tests/` | xUnit tests for the risk engine, the flag state machine and helpers |
 
-Stack: C#, ADO.NET over Npgsql with raw SQL (no ORM), Razor views, plain JavaScript, a hosted background service in place of a job queue. No Docker required.
+Stack: C#, ADO.NET over Npgsql with raw SQL, Razor views, plain JavaScript, a hosted background service in place of a job queue.
 
 ## Run it locally
 
@@ -72,7 +72,7 @@ Open http://localhost:5080. On first start the app creates the tables, the demo 
 | Nurse Amina Hassan | 0700 000 002 |
 | Admin | 0700 000 001 |
 
-Development settings speed time up for demos: check-ins every 30 minutes, and response times at one tenth of their real length (`Care:SlaScale = 0.1`), so a 2-hour bleeding SLA lasts 12 minutes.
+Development settings speed time up for demos: check-ins every 30 minutes, and response times at one-tenth of their real length (`Care:SlaScale = 0.1`), so a 2-hour bleeding SLA lasts 12 minutes.
 
 ### Demo script (about 3 minutes)
 
